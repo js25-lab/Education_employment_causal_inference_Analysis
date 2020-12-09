@@ -1,0 +1,144 @@
+---
+title: "Education_employment_causal_inference_analysis"
+author: "StudentA"
+date: "12/9/2020"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Abstract
+Education believes to have substantial effect on employment prospects. This paper aims to investigate the causal links between education and employment by employing propensity score method. Demonstration of the propensity score matching method is presented in examining the causal effect of education on employment. 
+
+## Keywords
+propensity scores, causal inference, employment, education
+
+## Introduction
+Statistical analysis has been widely implemented in carrying out researches. It involves collecting and selecting data, drawing meaningful conclusions, and reporting findings. In drawing conclusions about a causal link based on varying conditions of an effect, causal inferences is the crucial process. Causal inference analyzes the response of the effect variable with cause being changed. Observational data is often considered more feasible and reliable than experimental data. It is thus of great importance to use causal inference in investigating potential relationship between two variables.
+
+One problem present in observational data is confounding. It impedes one's ability to draw causal inferences. Propensity score matching methods is thus introduced and has been widely implemented then. One of the propensity method, namely matching is presented in this context of examination of causal effect of education on employment rate. I will implement this method to discern if there is a causal link between whether or not a person receives high education and whether or not a person is employed.
+
+Dataset obtained from Voter study group will be used. Propensity score matching method is implemented in making inference on the causal link between education and employment. In the Methodology section, data and the model used for propensity analysis are described. Results section includes the result derived from the propensity score analysis from the previous section. Inference drawn on the data and conclusions are included in the final Conclusion section.
+
+## Methodology
+# Data 
+
+```{r}
+# Setting up workspace
+library(haven)
+library(tidyverse)
+# Read raw data
+raw_data <- read_dta("ns20200625.dta")
+# Adding labels
+raw_data <- labelled::to_factor(raw_data)
+raw_data
+# Kept variables 
+reduced_data <-
+  raw_data %>% 
+  select(employment,
+         gender,
+         race_ethnicity,
+         education,
+         state,
+         household_income,
+         age)
+
+
+#Adjust Data types
+reduced_data_survey$age<-as.numeric(reduced_data_survey$age)
+# Filter on survey data
+#filter only on the people that are both registered & intented to vote (Optional, depends on your assumptions)
+#(Assuming people will vote unless they explicitly say no)
+filtered_data_survey<-reduced_data_survey %>% 
+  dplyr::filter(registration=="Registered"&
+           vote_intention!="No, I am not eligible to vote"&
+           vote_intention!="No, I will not vote but I am eligible"&
+           (vote_2020=="Donald Trump"|vote_2020=="Joe Biden")
+  )
+
+highincome<-c('$150,000 to $174,999','$175,000 to $199,999','$200,000 to $249,999','250,000 and above')
+filtered_data_survey$income_high<-ifelse(filtered_data_survey$household_income %in%  highincome, 1, 0)
+filtered_data_survey$income_high<-as.factor(filtered_data_survey$income_high)
+
+filtered_data_survey<-na.omit(filtered_data_survey)
+
+rm(raw_data_survey,reduced_data_survey)
+
+
+# mutate employment
+reduced_data <- reduced_data %>% 
+  mutate(employment = case_when(
+    employment=="Full-time employed" ~ 'employed',
+    employment=="Homemaker" ~ 'unemployed',
+    employment=="Retired" ~ 'unemployed',
+    employment=="Unemployed or temporarily on layoff" ~ 'unemployed',
+    employment=="Part-time employed" ~ 'employed',
+    employment=="Permanently disabled" ~ 'unemployed',
+    employment=="Student" ~ 'unemployed',
+    employment=="Self-employed" ~ 'employed'
+  )) 
+
+#levels(factor(reduced_data$race))
+# categorized racial groups
+reduced_data <- reduced_data %>% 
+  mutate(race = case_when(
+    race=="Black, or African American" ~ 'Black',
+    race=="American Indian or Alaska Native" ~ 'Others',
+    race=="Pacific Islander (Native Hawaiian)" ~ 'Others',
+    race=="Pacific Islander(Guamanian)" ~ 'Others',
+    race=="Pacific Islander(Samoan)" ~ 'Others',
+    race=="Pacific Islander(Other)" ~ 'Others',
+    race=="Some other race" ~ 'Others',
+    race=="Asian (Asian Indian)" ~ 'Asian',
+    race=="Asian (Chinese)" ~ 'Asian',
+    race=="Asian (Filipino)" ~ 'Asian',
+    race=="Asian (Japanese)" ~ 'Asian',
+    race=="Asian (Korean)" ~ 'Asian',
+    race=="Asian (Vietnamese)" ~ 'Asian',
+    race=="Asian (Other)" ~ 'Asian',
+    race=="White" ~ 'White'
+  )) 
+# levels(factor(reduced_data$education))
+# categorized education 
+reduced_data <- reduced_data %>% 
+  mutate(education = case_when(
+    education=="3rd Grade or less" ~ 'Less than highschool',
+    education=="Middle School - Grades 4 - " ~ 'Less than highschool',
+    education=="Completed some high schoo" ~ 'Highschool',
+    education=="High school graduate" ~ 'Highschool',
+    education=="Other post high school vocational training" ~ 'Undergraduates or similar degree',
+    education=="Completed some college, but no degree" ~ 'Undergraduates or similar degree',
+    education=="Associate Degree" ~ 'Undergraduates or similar degree',
+    education=="College Degree (such as B.A., B.S.)" ~ 'Undergraduates or similar degree',
+    education=="Completed some graduate, but no degree" ~ 'Undergraduates or similar degree',
+    education=="Masters degree" ~ 'Graduates or higher degree',
+    education=="Doctorate degree" ~ 'Graduates or higher degree',
+  ))
+# changed age to age group
+reduced_data <- reduced_data %>% 
+  mutate(age = case_when(
+    age <= 29 ~ 'Age_18-29',
+    age >= 30 & age <= 44 ~ 'Age_30-44',
+    age >= 45 & age <= 59 ~ 'Age_45-59',
+    age >= 60 & age <= 74 ~ 'Age_60-74',
+    age >= 75  ~ 'Age_75+'
+  ))
+```
+# Model
+
+
+## Results
+
+## Discussion
+# Summary
+# Conclusions
+# Weaknesses & Next Steps
+
+
+## Appendices
+
+
+
+## References
