@@ -318,7 +318,7 @@ title("Figure 1: Cross Validation")
 
 
 # Results and Discussion
-```{r, echo=FALSE, message=FALSE}
+```{r, echo=FALSE, message=FALSE, warning=FALSE}
 huxtable::huxreg(ps_reg)
 library(jtools)
 effect_plot(ps_reg, pred = edu, x.label = "education", y.label = "employment rate")
