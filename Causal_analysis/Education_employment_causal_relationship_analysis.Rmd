@@ -1,7 +1,8 @@
 ---
-title: "Education_employment_causal_inference_analysis"
-author: "StudentA"
-date: "12/9/2020"
+title: "Higher education, the key to greater job opportunities"
+author: "Ziyu Hao"
+date: "22 December 2020"
+bibliography: reference.bib
 output:
   pdf_document: default
   html_document: default
@@ -9,62 +10,378 @@ output:
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
+options(tinytex.verbose = TRUE)
 ```
 
+
+
 ## Abstract
-Education believes to have substantial effect on employment prospects. This paper aims to investigate the causal links between education and employment by employing propensity score method. Demonstration of the propensity score matching method is presented in examining the causal effect of education on employment. 
+Education plays a substantial role on employment opportunities. In this paper I will analyze the effect of receiving post-secondary or higher education, as opposed to secondary or lower education, on employment status. Since students who have received higher than post-secondary level of education, as opposed to student who have not, on average have more exposure to all aspects of life, we will use propensity score matching to obtain more credible causal estimates.
+
+To examine the effect of receiving post-secondary or higher education (with treatment) versus receiving secondary or lower education (controlled) on employment using matching, I will conduct the following steps:
+1. Estimate propensity scores (The probability of being treated)
+2. Apply propensity score matching to the filtered data
+3. Create matches and reduce the dataset to include only matched observations
+4. Estimate treatment effects with reduced dataset using glm model
+
 
 ## Keywords
-propensity scores, causal inference, employment, education
+propensity score matching, causal inference, employment, education
 
 ## Introduction
-Statistical analysis has been widely implemented in carrying out researches. It involves collecting and selecting data, drawing meaningful conclusions, and reporting findings. In drawing conclusions about a causal link based on varying conditions of an effect, causal inferences is the crucial process. Causal inference analyzes the response of the effect variable with cause being changed. Observational data is often considered more feasible and reliable than experimental data. It is thus of great importance to use causal inference in investigating potential relationship between two variables.
+Statistical analysis has been widely implemented in carrying out research. It involves collecting and selecting data, drawing meaningful conclusions, and reporting findings. Causal inference is the crucial process in concluding a causal link based on varying conditions of an effect. Causal inference analyzes the response of the effect variables with the changes of the cause. Thus, it is of great importance to use causal inference in investigating a potential relationship between two variables.
 
-One problem present in observational data is confounding. It impedes one's ability to draw causal inferences. Propensity score matching methods is thus introduced and has been widely implemented then. One of the propensity method, namely matching is presented in this context of examination of causal effect of education on employment rate. I will implement this method to discern if there is a causal link between whether or not a person receives high education and whether or not a person is employed.
+Observational data is often considered more feasible and reliable than experimental data. However, confounding variable influences both the response and explanatory variables and causes a spurious correlation, thereby impeding the ability to draw causal inferences from observational data. Thus, we use methods to minimize the effects of confounding variables, such as propensity score matching, to examine the causal effect of education on employment.
 
-Dataset obtained from Voter study group will be used. Propensity score matching method is implemented in making inference on the causal link between education and employment. In the Methodology section, data and the model used for propensity analysis are described. Results section includes the result derived from the propensity score analysis from the previous section. Inference drawn on the data and conclusions are included in the final Conclusion section.
+Propensity score matching is an experimental method in which a control group is constructed consisting of pairs whose individuals have matching characteristics, but differ in treatment. The dataset can then be further reduced and the matched pairs can be used to estimate the impact of an intervention. I will implement this method to discern a causal link between level of education and employment status.
+
+Dataset obtained from the Voter study group will be used. The propensity score matching method is implemented in making inferences on the causal link between level of education and employment status. In the Methodology section, data and the model used for propensity analysis are described. The results section includes the result derived from the propensity score analysis in the previous section. The inference drawn from the data and conclusions is included in the Conclusion section.
 
 ## Methodology
 # Data 
-github repo link: https://github.com/js25-lab/Education_employment_causal_inference_Analysis/blob/main/Causal_analysis/Education_employment_causal_relationship_analysis.Rmd
-```{r}
+The data was generously provided by Tausanovitch, Chris and Lynn Vavreck. 2020. Democracy Fund + UCLA Nationscape, October 10-17, 2019 (version 20200814). Retrieved from [https://www.voterstudygroup.org/downloads?key=181743d7-a018-45c1-b048-bdb2eceac7dd].
+
+The random digit dialing method is riddled with ineffectual responses. The success of making generalized findings has reduced greatly due to the low response rate from the challenge of reaching more targeted survey participants. To deal with such problems Nationscape, a partnership of Democracy Fund Voter Study Group and UCLA Political Scientist, provides a dataset containing data of certain demographic criteria. The survey conducted 500,000 interviews of Americans from July 2019 through December 2020, covering the 2020 campaign and election. The survey includes interviews with roughly 6,250 people per week. The survey is available online, and an attention check is required before the study. The survey is conducted entirely in English.
+
+There are 6479 observations in the original dataset containing 265 variables. For the purpose of this study, we first filter the data to 3635 observations and 7 variables. The 7 variables selected are employment, gender, race_ethnicity, education, state, household_income, and age. Employment and education are selected since we aim to infer causal relationship between them. All other variables are chosen for which they potentially affect employment rate and can be combined with achieved education levels to assess change in employment status.
+
+
+
+A variable named 'unemployment' is created to include observations characterized by inability to be employed or not in the workforce. Our response variable 'emp' is then created to have 2 categories, with 1 representing employment and 0 representing unemployment, the members of the unemployment variable. In categorizing our treatment into 2 categories, a variable named 'secondary_or_lower' is created to represent observations characterized by secondary or lower levels of education. Our treatment variable 'edu' is then created to have 2 categories, with 1 representing post-secondary or higher levels of education and 0 representing secondary or lower levels of education, members of the variable secondary_or_lower.
+
+The predictors are edu, gender, race_ethnicity, state, home_income, and age. Race_ethnicity was categorized into 4 groups namely Asian, Black, White, and Others. 
+state was categorized into 4 categories namely Northeast, Midwest, South, and West.
+Home_income was created based on the original variable household_income, with 1 representing high income, greater than or equal to $150,000 and 0 represents low income, which is less than $150,000.
+
+
+After propensity score matching, the filtered data was reduced to 2000 observations, thus 1000 pairs of matched observations.
+
+
+
+```{r echo=FALSE, message=FALSE}
+#### Preamble ####
+# Purpose: Prepare and clean the survey data downloaded fromï¼
+# Tausanovitch, Chris and Lynn Vavreck. 2020. Democracy Fund + UCLA Nationscape, October 10-17, 2019 (version 20200814). 
+# https://www.voterstudygroup.org/downloads?key=181743d7-a018-45c1-b048-bdb2eceac7dd
+# Author: Ziyu Hao 
+# Data: 15 December 2020
+# Contact: chrissy.hao@mail.utoronto.ca
+# License: MIT
+# Pre-requisites: 
+# - Need to have downloaded the data from X and save the folder that you're 
+# interested in to inputs/data 
+
+
 # Setting up workspace
+library(haven)
 library(tidyverse)
+library(broom)
+library(arm)
+library(huxtable)
+library(pROC)
+library(rms)
 # Read raw data
 raw_data <- read_dta("ns20200625.dta")
 # Adding labels
 raw_data <- labelled::to_factor(raw_data)
-raw_data
+
 # Kept variables 
 reduced_data <-
   raw_data %>% 
-  select(employment,
+  dplyr::select(employment,
          gender,
          race_ethnicity,
          education,
          state,
          household_income,
          age)
+
+
+# filter out people whose age are older than 60 with a retired employment status
+filtered_data<-reduced_data %>% 
+  dplyr::filter(age <= 60 &
+                  employment != "Retired"
+  )
+
+
+# Education as treatment, create new binary response edu
+secondary_or_lower<-c('3rd Grade or less', 'Middle School - Grades 4 -', 'Completed some high school','High school graduate')
+filtered_data$edu<-ifelse(filtered_data$education %in%  secondary_or_lower, 0, 1)
+filtered_data$edu<-as.factor(filtered_data$edu)
+filtered_data<-na.omit(filtered_data)
+
+# Employment as the variable of interest(result), create new binary response emp
+unemployment <-c('Homemaker', 'Unemployed or temporarily on layoff', 'Permanently disabled', 'Student')
+filtered_data$emp<-ifelse(filtered_data$employment %in%  unemployment, 0, 1)
+filtered_data$emp<-as.factor(filtered_data$emp)
+filtered_data<-na.omit(filtered_data)
+
+
+# modify race_ethnicity to three categories
+filtered_data <- filtered_data %>% 
+  mutate(race_ethnicity = case_when(
+    race_ethnicity=="Black, or African American" ~ 'Black',
+    race_ethnicity=="American Indian or Alaska Native" ~ 'Others',
+    race_ethnicity=="Pacific Islander (Native Hawaiian)" ~ 'Others',
+    race_ethnicity=="Pacific Islander(Guamanian)" ~ 'Others',
+    race_ethnicity=="Pacific Islander(Samoan)" ~ 'Others',
+    race_ethnicity=="Pacific Islander(Other)" ~ 'Others',
+    race_ethnicity=="Some other race_ethnicity" ~ 'Others',
+    race_ethnicity=="Asian (Asian Indian)" ~ 'Asian',
+    race_ethnicity=="Asian (Chinese)" ~ 'Asian',
+    race_ethnicity=="Asian (Filipino)" ~ 'Asian',
+    race_ethnicity=="Asian (Japanese)" ~ 'Asian',
+    race_ethnicity=="Asian (Korean)" ~ 'Asian',
+    race_ethnicity=="Asian (Vietnamese)" ~ 'Asian',
+    race_ethnicity=="Asian (Other)" ~ 'Asian',
+    race_ethnicity=="White" ~ 'White'
+  )) 
+
+# modify state and divide it by regions
+filtered_data <- filtered_data %>% 
+  mutate(state = case_when(
+    state=="ME" ~ 'Northeast',
+    state=="NH" ~ 'Northeast',
+    state=="VT" ~ 'Northeast',
+    state=="MA" ~ 'Northeast',
+    state=="RI" ~ 'Northeast',
+    state=="NY" ~ 'Northeast',
+    state=="PA" ~ 'Northeast',
+    state=="NJ" ~ 'Northeast',
+    state=="WI" ~ 'Midwest',
+    state=="MI" ~ 'Midwest',
+    state=="IL" ~ 'Midwest',
+    state=="IN" ~ 'Midwest',
+    state=="OH" ~ 'Midwest',
+    state=="SD" ~ 'Midwest',
+    state=="ND" ~ 'Midwest',
+    state=="NE" ~ 'Midwest',
+    state=="KS" ~ 'Midwest',
+    state=="MN" ~ 'Midwest',
+    state=="IA" ~ 'Midwest',
+    state=="MO" ~ 'Midwest',
+    state=="DE" ~ 'South',
+    state=="VA" ~ 'South',
+    state=="WV" ~ 'South',
+    state=="NC" ~ 'South',
+    state=="SC" ~ 'South',
+    state=="GA" ~ 'South',
+    state=="KY" ~ 'South',
+    state=="MS" ~ 'South',
+    state=="TN" ~ 'South',
+    state=="AL" ~ 'South',
+    state=="OK" ~ 'South',
+    state=="TX" ~ 'South',
+    state=="AK" ~ 'South',
+    state=="LA" ~ 'South',
+    state=="TN" ~ 'South',
+    state=="AL" ~ 'South',
+    state=="OK" ~ 'South',
+    state=="TX" ~ 'South',
+    state=="LA" ~ 'South',
+    state=="ID" ~ 'West',
+    state=="MT" ~ 'West',
+    state=="NV" ~ 'West',
+    state=="WY" ~ 'West',
+    state=="UT" ~ 'West',
+    state=="CO" ~ 'West',
+    state=="AZ" ~ 'West',
+    state=="NM" ~ 'West',
+    state=="AK" ~ 'West',
+    state=="DC" ~ 'West',
+    state=="OR" ~ 'West',
+    state=="CA" ~ 'West',
+    state=="HI" ~ 'West',
+    )) 
+
+
+# modify age to age groups
+filtered_data <- filtered_data %>% 
+  mutate(age = case_when(
+    age <= 29 ~ 'Age_18-29',
+    age >= 30 & age <= 44 ~ 'Age_30-44',
+    age >= 45 & age <= 59 ~ 'Age_45-59',
+  ))
+
+
+# modify household_income to binary response home_income
+high_income<-c('$150,000 to $174,999','$175,000 to $199,999','$200,000 to $249,999','250,000 and above')
+filtered_data$home_income<-ifelse(filtered_data$household_income %in%  high_income, 1, 0)
+filtered_data$home_income<-as.factor(filtered_data$home_income)
+filtered_data<-na.omit(filtered_data)
+
+
+
+## Propensity score matching
+
+# propensity score estimation
+propensity_score <- glm(edu ~ home_income + age + gender + state + race_ethnicity, 
+                        family = binomial,
+                        data = filtered_data)
+
+summary(propensity_score)
+
+# dataframe with propensity score and individual's treatment status
+
+prs <- data.frame(pr_score = predict(propensity_score, type="response"), education = propensity_score$model$edu)
+head(prs)
+
+# Region of common support
+labs <- paste("Education received:", c("Post-secondary or higher", "Secondary or lower"))
+prs %>%
+  mutate(education = ifelse(education==1, labs[1], labs[2])) %>%
+  ggplot(aes(x=pr_score)) + 
+  geom_histogram(color = "white") +
+  facet_wrap(~education) +
+  xlab("Probability of receiving post-secondary or higher education") +
+  theme_bw()
+
+
+
+
+filtered_data <- 
+  augment(propensity_score, 
+          data = filtered_data,
+          type.predict = "response") %>% 
+  dplyr::select(-.resid, -.std.resid, -.hat, -.sigma, -.cooksd)
+
+# Now we use our forecast to create matches. 
+filtered_data <- 
+  filtered_data %>% 
+  arrange(.fitted, edu)
+
+
+# Implement matching function from arm package. Matching with or without treatment, in this research, corresponds to receiving post-secondary education vs secondary and lower education.
+# w_treat meaning  treatment
+filtered_data$w_treat <- 
+  if_else(filtered_data$edu == 0, 0, 1)
+
+filtered_data$w_treat  <- 
+  as.integer(filtered_data$w_treat)
+
+matches <- arm::matching(z = filtered_data$w_treat, 
+                         score = filtered_data$.fitted)
+filtered_data <- cbind(filtered_data, matches)
+
+
+# Reduce the dataset.
+filtered_data_matched <- 
+  filtered_data %>% 
+  filter(match.ind != 0) %>% 
+  dplyr::select(-match.ind, -pairs, -w_treat)
+
+
+#head(filtered_data_matched)
+
 ```
+
+
 # Model
+Generalized Linear Model is used in this research. For the purpose of implementing propensity score matching, we have coined a new variable 'emp' to have 2 categories, employed and unemployed, where:
+- 1 represents the number of people that are currently full-time employed, part-time employed, or self-employed
+- 0 represents the number of people that are currently a homemaker, Unemployed or temporarily on layoff, Permanently disabled, or a Student
+
+Predictors are categorical variables including home_income, age, gender, edu, state, and race_ethnicity.
+
+Our model equation is:
+$$Pr(emp = 1) = \mbox{logit}^{-1}\left(\alpha^{home_income}_{a[i]} + \alpha^{age}_{e[i]} + \alpha^{gender}_{s[i]} + \alpha^{edu}_{d[i]} + \alpha^{state}_{e[i]} + \alpha^{race_ethnicity}_{s[i]}\right) $$
+
+To check if the assumptions for the generalized linear model are satisfied, we generated the following plots. Three key assumptions behind glm are: 1. Linearity
+2. Response distribution, and 3. Independence
+
+We can conclude that the linearity assumption is respected by looking at the Residuals vs Fitted plot, no trend is observed in the residuals. By looking at the QQ-plot, we can check if the standardized residuals follow a standardized normal distribution. Though we expect the points to align with the reference line, it is reasonable to have some departures. The plot for dataset respects the response distribution assumption for logistic regression. The Scale-Location plot is used for testing the assumption of equal variance(homoscedasticity). The assumptions are satisfied since the residuals shows equal distribution above and below the line.
+Three assumptions are checked.
 
 
+```{r, echo=FALSE}
+# apply model diagnostics
+par(mfrow=c(2,2))
+ps_reg <- glm(as.factor(emp) ~ home_income+age+gender+edu+state+race_ethnicity, 
+     family = binomial,
+        data = filtered_data_matched)
+plot(ps_reg)
 
 
-## Results
+```
+Overfitting is a condition where the fitted statistical model describes the random error in the data instead of relationship between variables. This is common when the fitted model is too complex. Generalizability can be reduced if the regression model is overfitted. Thus Cross-validation is employed in this paper. Cross-validation is used to prevent overfitting and to ensure well-fitting of the proposed model. Here we use a function called 'calibrate' from CRAN package. Calibrate is a resampling model calibration method and it allows us to use cross-validation to obtain overfitting-corrected estimates of predicted versus observed values. The function type for calibration in this case is lrm(binary/ordinal logistic model).
+
+A non-parametric calibration curve is generated for logistic model. It is estimated over predicted values. The mean absolute error is 0.02, referring to the difference between the predicted values and the corresponding overfitting-corrected calibrated values. The curve shows that the data is almost consistent with the ideal line. Hence validating our proposed model.
 
 
+```{r Cross Validation, echo=FALSE, message= FALSE}
+# model validation
+lrm.valid <- lrm(filtered_data_matched$emp ~ age + home_income + race_ethnicity  + edu+ gender + state, data = filtered_data_matched,x =TRUE, y = TRUE, model= T)
+calib.valid <- calibrate(lrm.valid, method="crossvalidation", B=10)
+plot(calib.valid, las=1, xlab = "Predicted Probability")
+title("Figure 1: Cross Validation")
+```
 
 
-## Discussion
-# Summary
-# Conclusions
+# Results and Discussion
+```{r, echo=FALSE, message=FALSE}
+huxtable::huxreg(ps_reg)
+library(jtools)
+effect_plot(ps_reg, pred = edu, x.label = "education", y.label = "employment rate")
+?effect_plot
+```
+
+The model is
+log(p/(1-p)) = -0.607 + 0.361* home_income1 + 0.280* ageAge_30-44 + 0.192 * ageAge_45-59
+              + 0.629* genderMale + 0.794* edu1- 0.130* stateNortheast- 0.100*stateSouth
+              +0.008* stateWest+ 0.590* race_ethnicityBlack + 0.434 * race_ethnicityOthers
+              +0.267*race_ethnicityWhite
+
+Table 1-Baseline of characteristics of the data:
+home_income0: low income 
+genderfemale: female
+edu0: secondary or lower education including
+race_ethnicity_asian: asian
+home_income0: low household income
+state_midwest: states belongs to midwest region           
+
+We interpret the coefficients of dummy variables as the percentage change in y when changing from the reference variable to the corresponding dummy variable, while holding all other covariates fixed, when y is log transformed.
+
+The coefficient of the dummy variable edu1 is 0.794, and it suggests that the log odds of getting employed increases by 79.4% when the education achieved changes from secondary or lower education(reference category-edu0) to post-secondary or higher education. 
+
+The p-value for edu1 is less than 0.001, which is smaller than the 0.05 significance level. We can conclude that there is a statistically significant association between receiving post-secondary or higher education and being employed. Change in the variable 'edu' from edu0 to edu1 (from secondary or lower education to post-secondary or higher education) is associated with changes in the mean of employment.
+
+Other covariates also affect job opportunites and likelihood of finding a job. Older peple have more job opportunities and thus have higher chances of getting employed. People who fall into the age range of 30-44 has 28% higher chance of getting employed than those who are less than 30 years old. The employment rate increases by 19.2% for people who are 45 to 59 years old compared to people who are 30 years old or younger. This is reasonable since older people tend to have more experience in the job market and know what kind of job they want and can best make use of their skills. Gender is also believed to be one of the most important factor. Male have 62.9% higher chances of employed than female. As for location, we can see that people live in Northeast and South of the United States have less chances of getting employed compared to those who live in Midwest. However, people who live in West have a really slight higher possibility of getting employed than those in Midwest. Asian have the lowest employment oppurtunity. The probability of employed increases by almost 60 percent for a black people compared to asian. 
+
+
+Given the two assumptions of propensity score matching holds, (1. conditional independence: there exists a set of x observational covariates such that when holding these covariates fixed, the outcomes are independent of treatment. and 2. Common support: for each value of x, the probability of being treated and untreated falls between 0 and 1.) we can infer that there is a causal relationship between level of education and employment status.
+
+To visualize effect of categorical predictor, effect_plot is used . The predictor of interest is the treatment edu. We can tell that there is a clear superiority of receiving post-secondary or higher education over lower education. 
+
+
+In this paper, we successfully infered a causal realtionship between education and employment by implementing a method called propensity score matching. We constructed an artificial control group and matched treated and non-treated units with other covariates being similar to each other. Propensity scores are calculated and applied to the filtered dataset and reduced the data to include only observations that successfully matched. A generalized linear model was then used to estimate the effects of education on employment rate. 
+
+
+## Conclusions
+We found that receiving a high level of education, as opposed to secondary or lower education, has a positive effect on employment rate. There is a correlation between attained level of education and probability of securing employment. There are also other covariates that essentially effect our job opportunities such as age, gender, home location, and ethnicity. People with greater age tend to have higher chances of acquiring employment than those of lower ages. Males have higher likelihood of gaining employment than females, which is the second most influential factor affecting employment. People living in the west overall have higher chances of getting employmed and this is reasonable since it is where most world-renowned universities are located and college opens doors to more career opportunities. As for ethnicity, Black, White and people of other ethnicities all have higher chances of employment than those of Asian ethnicity. Holding all other covariates fixed, unemployment decreases as educational attainment increases.
+
+As the educational level increases and more people are pursuing job positions, the workforce is supplied with more high skilled workers. This increase in supply of highly educated people in the workforce affects the requirements for jobs. Nowadays, it is impossible to get the position you want without a desirable degree. The emphasis on educational requirement has greatly increased, only with advanced studies in a related field can you become an competitive candidate.
+ 
+Higher academia can give people time to improve writing, reading, communication and technical skills. These are essential in a competitive job market. Higher education offers people an opportunity to interact with a wider variety of people, improving social skills that are important in job search processes.
+
 # Weaknesses & Next Steps
+Propensity score matching method has one disadvantage. PSM accounts only for observable covariates. There are hidden factors that affects assignment to treatment, and they are not accounted for in the matching process. There are certain biases due to latent variables and it can remain after matching.
 
+The inappropriateness of the link function is also a problem in the generalized linear model. The lack of a fixed level of predictiveness of the models is another problem.
 
+What we can do next is to conduct a survey with the leading businessess on the categories they recruit. By comparing with the categories I have used in this analysis, we can add more categories or eliminate certain confounding variables to make the analysis more precise since businesses are defined by themselves. 
 
 ## Appendices
-
+You can find our codes in:
+(https://github.com/js25-lab/Education_employment_causal_inference_Analysis/tree/main/Causal_analysis)
 
 
 ## References
+@citetidyverse
+@citehaven
+@citebroom
+@citearm
+@citehuxtable
+@citepROC
+@citerms
+@jtools
+
